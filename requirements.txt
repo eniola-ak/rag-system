@@ -1,0 +1,11 @@
+llama-index
+llama-index-vector-stores-chroma
+llama-index-embeddings-ollama
+llama-index-llms-groq
+chromadb
+groq
+fastapi
+uvicorn
+python-dotenv
+youtube-transcript-api
+firecrawl-py
