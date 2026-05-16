@@ -6,8 +6,7 @@ from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.core import StorageContext
 from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.llms.groq import Groq
-from youtube_transcript_api import YouTubeTranscriptApi
-from firecrawl import FirecrawlApp
+from youtube_transcript_api import YouTubeTranscriptApi, FetchedTranscript
 import urllib.parse
 
 load_dotenv()
@@ -57,19 +56,34 @@ def ingest_pdf(file_path: str) -> dict:
     }
 
 # ---- Source 2: Web URL (via Firecrawl) ----
+# ---- Source 2: Web URL (via requests + BeautifulSoup) ----
 def ingest_url(url: str) -> dict:
     """
-    Scrape a web page using Firecrawl (returns clean markdown),
+    Scrape a web page using requests and BeautifulSoup,
     chunk it, embed it, store in Chroma.
     """
-    print(f"🌐 Ingesting URL: {url}")
-    app = FirecrawlApp(api_key=os.getenv("FIRECRAWL_API_KEY"))
-    result = app.scrape_url(url, params={"formats": ["markdown"]})
+    import requests
+    from bs4 import BeautifulSoup
 
-    # Firecrawl returns clean markdown — perfect for LLMs
-    content = result.get("markdown", "")
+    print(f"🌐 Ingesting URL: {url}")
+
+    headers = {"User-Agent": "Mozilla/5.0"}
+    response = requests.get(url, headers=headers, timeout=10)
+
+    if response.status_code != 200:
+        return {"status": "error", "message": f"Failed to fetch URL: {response.status_code}"}
+
+    # Parse HTML and extract clean text
+    soup = BeautifulSoup(response.text, "html.parser")
+
+    # Remove noise — scripts, styles, nav etc.
+    for tag in soup(["script", "style", "nav", "footer", "header"]):
+        tag.decompose()
+
+    content = soup.get_text(separator="\n", strip=True)
+
     if not content:
-        return {"status": "error", "message": "No content scraped from URL"}
+        return {"status": "error", "message": "No content extracted from URL"}
 
     document = Document(
         text=content,
@@ -102,8 +116,9 @@ def ingest_youtube(video_url: str) -> dict:
         return {"status": "error", "message": "Could not extract video ID from URL"}
 
     # Fetch transcript
-    transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
-    full_text = " ".join([entry["text"] for entry in transcript_list])
+    ytt_api = YouTubeTranscriptApi()
+    fetched = ytt_api.fetch(video_id)
+    full_text = " ".join([entry.text for entry in fetched])
 
     document = Document(
         text=full_text,
