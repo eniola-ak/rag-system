@@ -41,7 +41,7 @@ def ingest_pdf(file_path: str) -> dict:
     """
     from llama_index.core import SimpleDirectoryReader
 
-    print(f"📄 Ingesting PDF: {file_path}")
+    print(f" Ingesting PDF: {file_path}")
     documents = SimpleDirectoryReader(input_files=[file_path]).load_data()
 
     index = get_index()
@@ -55,7 +55,6 @@ def ingest_pdf(file_path: str) -> dict:
         "chunks_ingested": len(documents)
     }
 
-# ---- Source 2: Web URL (via Firecrawl) ----
 # ---- Source 2: Web URL (via requests + BeautifulSoup) ----
 def ingest_url(url: str) -> dict:
     """
@@ -65,7 +64,7 @@ def ingest_url(url: str) -> dict:
     import requests
     from bs4 import BeautifulSoup
 
-    print(f"🌐 Ingesting URL: {url}")
+    print(f" Ingesting URL: {url}")
 
     headers = {"User-Agent": "Mozilla/5.0"}
     response = requests.get(url, headers=headers, timeout=10)
@@ -106,7 +105,7 @@ def ingest_youtube(video_url: str) -> dict:
     Pull the transcript from a YouTube video,
     chunk it, embed it, store in Chroma.
     """
-    print(f"🎥 Ingesting YouTube: {video_url}")
+    print(f" Ingesting YouTube: {video_url}")
 
     # Extract video ID from URL
     parsed = urllib.parse.urlparse(video_url)
